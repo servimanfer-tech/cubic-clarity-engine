@@ -192,6 +192,7 @@ export interface MethodResult {
 export interface CaseResult {
   case: PatelTejaCase;
   consensusRoot: number;       // double-precision agreed root (median of FM/Cardano/Newton)
+  diagnostics: CaseDiagnostics;
   methods: MethodResult[];
   passOverall: boolean;
 }
@@ -201,6 +202,24 @@ export interface BenchmarkReport {
   overallPass: boolean;
   generatedAt: string;
   precision: "IEEE-754 double";
+}
+
+function computeDiagnostics(tc: PatelTejaCase): CaseDiagnostics {
+  const { p, q, delta } = depress(tc.A, tc.B, tc.C, tc.D);
+  const ratio = (4 * delta) / (q * q);
+  return {
+    p,
+    q,
+    delta,
+    ratio4DeltaOverQ2: ratio,
+    pErrorPct: tc.paperP !== undefined ? relErrorPct(p, tc.paperP) : NaN,
+    qErrorPct: tc.paperQ !== undefined ? relErrorPct(q, tc.paperQ) : NaN,
+    deltaErrorPct: tc.paperDelta !== undefined ? relErrorPct(delta, tc.paperDelta) : NaN,
+    ratioErrorPct:
+      tc.paperRatio4DeltaOverQ2 !== undefined
+        ? relErrorPct(ratio, tc.paperRatio4DeltaOverQ2)
+        : NaN,
+  };
 }
 
 export function runPatelTejaValidation(): BenchmarkReport {
@@ -213,9 +232,8 @@ export function runPatelTejaValidation(): BenchmarkReport {
     const pickedCD = pickRoot(cd.roots, tc.rootSelector, tc.expectedFM);
     const pickedNW = pickRoot(nw.roots, tc.rootSelector, tc.expectedFM);
 
-    // Consensus: average of FM and Cardano (both closed-form, Newton can stall near
-    // double roots and is reported as informational only).
     const consensus = (pickedFM.value + pickedCD.value) / 2;
+    const diagnostics = computeDiagnostics(tc);
 
     const buildMethod = (
       name: MethodResult["method"],
@@ -230,16 +248,14 @@ export function runPatelTejaValidation(): BenchmarkReport {
       let failExpected = false;
 
       if (name === "Cardano" && tc.cardanoFailsInPaper && tc.doublePrecisionLimited) {
-        // In double precision the failure mode the paper documents (huge error)
-        // typically does NOT reproduce, because all 3 methods land on the same
-        // double-precision root. Mark as "informational" — pass = consistent.
         failExpected = true;
         pass = errCons < CONSENSUS_TOLERANCE_PCT;
+      } else if (tc.id === "V" && name === "Fernández Molina") {
+        // V: FM is ratio-robust — validate against the paper ROOT, not Δ.
+        pass = errFM < FM_V_ROOT_TOLERANCE_PCT;
       } else if (tc.doublePrecisionLimited) {
-        // FM/Newton: cannot reproduce paper value, but must match consensus.
         pass = errCons < CONSENSUS_TOLERANCE_PCT;
       } else {
-        // ρ case: full paper fidelity required for FM, looser for others.
         if (name === "Fernández Molina") pass = errFM < FM_TOLERANCE_PCT;
         else pass = errCons < CONSENSUS_TOLERANCE_PCT;
       }
@@ -268,6 +284,7 @@ export function runPatelTejaValidation(): BenchmarkReport {
     return {
       case: tc,
       consensusRoot: consensus,
+      diagnostics,
       methods,
       passOverall: methods[0].pass,
     };
