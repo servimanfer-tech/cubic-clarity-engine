@@ -32,7 +32,7 @@ const PRESETS: Record<string, Coeffs & { label: string; desc: string }> = {
 };
 
 const Index = () => {
-  const [c, setC] = useState<Coeffs>({ A: "1", B: "-6", C: "11", D: "-6" });
+  const [c, setC] = useState<Coeffs>({ A: "1", B: "1e6", C: "1", D: "-1e-6" });
 
   const A = parseFloat(c.A);
   const B = parseFloat(c.B);
@@ -117,6 +117,15 @@ const Index = () => {
       </header>
 
       <main className="container py-6 space-y-6">
+        {/* Welcome line */}
+        <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+          <span className="font-medium text-foreground">Este método resuelve cúbicas donde Cardano falla.</span>{" "}
+          <span className="text-muted-foreground">Cargado con un caso donde la diferencia es visible.</span>
+        </div>
+
+        {/* Patel-Teja published-benchmark validation — moved above the fold */}
+        <PatelTejaPanel />
+
         {/* Inputs + presets */}
         <div className="grid gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-2">
@@ -292,13 +301,30 @@ const Index = () => {
                 <TableBody>
                   {[results.fm, results.cd, results.nw].map((r) => {
                     const diff = maxRootDifference(r.roots, results.fm.roots);
+                    const refMag = Math.max(1e-300, Math.abs(results.fm.roots[0]?.re ?? 0) + Math.abs(results.fm.roots[0]?.im ?? 0));
+                    const relPct = (diff / refMag) * 100;
+                    const isFM = r === results.fm;
+                    const fails = !isFM && relPct > 1e-3;
+                    const matches = !isFM && diff > 0 && relPct <= 1e-3;
                     return (
                       <TableRow key={r.method}>
                         <TableCell className="font-medium">{r.method}</TableCell>
                         <TableCell className="font-mono text-xs">{fmtC(r.roots[0])}</TableCell>
                         <TableCell className="font-mono text-xs">{r.iterations}</TableCell>
                         <TableCell className="text-right font-mono text-xs">
-                          {r === results.fm ? "—" : diff.toExponential(3)}
+                          <div className="flex items-center justify-end gap-2">
+                            <span>{isFM ? "—" : diff.toExponential(3)}</span>
+                            {fails && (
+                              <Badge className="bg-destructive text-destructive-foreground gap-1 text-[10px]">
+                                <XCircle className="h-3 w-3" /> FALLA
+                              </Badge>
+                            )}
+                            {matches && (
+                              <Badge className="bg-success text-success-foreground gap-1 text-[10px]">
+                                <CheckCircle2 className="h-3 w-3" /> COINCIDE
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
