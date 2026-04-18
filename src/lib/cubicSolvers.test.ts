@@ -42,7 +42,9 @@ const sortReals = (roots: Complex[]) =>
 describe("solveFernandezMolina — required test matrix", () => {
   it("normal cubic: x³ − 6x² + 11x − 6 = 0 → {1, 2, 3}", () => {
     const r = solveFernandezMolina(1, -6, 11, -6);
+    console.log("DBG normal roots:", JSON.stringify(r.roots), "method:", r.method);
     const reals = sortReals(r.roots);
+    console.log("DBG normal reals:", reals);
     expect(reals.length).toBe(3);
     [1, 2, 3].forEach((expected, i) => {
       expect(Math.abs(reals[i] - expected)).toBeLessThan(1e-6);
