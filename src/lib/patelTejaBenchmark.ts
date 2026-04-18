@@ -185,9 +185,9 @@ export function runPatelTejaValidation(): BenchmarkReport {
     const pickedCD = pickRoot(cd.roots, tc.rootSelector, tc.expectedFM);
     const pickedNW = pickRoot(nw.roots, tc.rootSelector, tc.expectedFM);
 
-    // Consensus: median of the three picks (robust to one outlier)
-    const sorted = [pickedFM.value, pickedCD.value, pickedNW.value].sort((a, b) => a - b);
-    const consensus = sorted[1];
+    // Consensus: average of FM and Cardano (both closed-form, Newton can stall near
+    // double roots and is reported as informational only).
+    const consensus = (pickedFM.value + pickedCD.value) / 2;
 
     const buildMethod = (
       name: MethodResult["method"],
