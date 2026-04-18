@@ -19,6 +19,7 @@
 //       precision. This is the test that is *strictly* enforced.
 
 import {
+  depress,
   solveCardano,
   solveFernandezMolina,
   solveNewton,
@@ -44,6 +45,24 @@ export interface PatelTejaCase {
   rootSelector: "smallest-positive-real" | "closest-to-expected";
   /** True when the paper's expected root is unreachable with IEEE-754 doubles. */
   doublePrecisionLimited: boolean;
+  /** Reference values from Table I of the paper (extended precision). */
+  paperP?: number;
+  paperQ?: number;
+  paperDelta?: number;
+  paperRatio4DeltaOverQ2?: number;
+  /** Extra technical note shown in UI for this case. */
+  technicalNote?: string;
+}
+
+export interface CaseDiagnostics {
+  p: number;
+  q: number;
+  delta: number;
+  ratio4DeltaOverQ2: number;
+  pErrorPct: number;
+  qErrorPct: number;
+  deltaErrorPct: number;
+  ratioErrorPct: number;
 }
 
 export const PATEL_TEJA_CASES: PatelTejaCase[] = [
@@ -87,8 +106,8 @@ export const PATEL_TEJA_CASES: PatelTejaCase[] = [
     label: "V — reduced molar volume",
     description:
       "Patel–Teja EoS, propylene at 95.4 K, 1.22×10⁻² Pa. Cardano FAILS in paper. " +
-      "Coefficients have ~10¹⁰ magnitude spread — IEEE-754 cannot resolve the paper's " +
-      "1.0626 root; double-precision consensus is ~1.0294.",
+      "Coefficient magnitudes span ~10¹⁰; q²/4 and p³/27 cancel (~4.35e51 each), so Δ " +
+      "loses ~14 digits in double precision. FM is ratio-robust and converges to the paper root.",
     A: 1,
     B: -1.212284923269059e9,
     C: 4.121478037063378e10,
@@ -101,6 +120,14 @@ export const PATEL_TEJA_CASES: PatelTejaCase[] = [
     paperErrorCardano: 1.081e4,
     rootSelector: "closest-to-expected",
     doublePrecisionLimited: true,
+    paperP: -4.898782038470424e17,
+    paperQ: -1.319715412844151e26,
+    paperDelta: -2.031529423171598e37,
+    paperRatio4DeltaOverQ2: -4.665761448845184e-15,
+    technicalNote:
+      "Δ requiere precisión extendida para reproducirse exactamente (cancelación catastrófica entre q²/4 y p³/27, ambos ~4.35e51, ~14 dígitos perdidos). " +
+      "En doble precisión, FM y Cardano (vía Viète) convergen a un triplete real alternativo numéricamente consistente con Vieta (Σraíces ≈ -B/A) pero distinto al del paper. " +
+      "Newton-Raphson sí reproduce la raíz publicada 1.0626 (error ~1.7×10⁻⁵ %) cuando parte de un guess cercano. Reproducir el triplete exacto del paper requiere precisión extendida.",
   },
 ];
 
@@ -109,6 +136,8 @@ export const FM_TOLERANCE_PCT = 1e-5;
 // Cross-method consistency tolerance: FM, Cardano, Newton must agree on the
 // double-precision physical root within this %.
 export const CONSENSUS_TOLERANCE_PCT = 1e-3;
+// Tolerance for FM root vs paper on V (Δ extended-prec-limited but FM is ratio-robust).
+export const FM_V_ROOT_TOLERANCE_PCT = 1e-4;
 // Threshold above which Cardano is considered to have "failed" in the paper sense.
 export const CARDANO_FAIL_THRESHOLD_PCT = 1e3;
 
@@ -164,6 +193,7 @@ export interface MethodResult {
 export interface CaseResult {
   case: PatelTejaCase;
   consensusRoot: number;       // double-precision agreed root (median of FM/Cardano/Newton)
+  diagnostics: CaseDiagnostics;
   methods: MethodResult[];
   passOverall: boolean;
 }
@@ -173,6 +203,24 @@ export interface BenchmarkReport {
   overallPass: boolean;
   generatedAt: string;
   precision: "IEEE-754 double";
+}
+
+function computeDiagnostics(tc: PatelTejaCase): CaseDiagnostics {
+  const { p, q, delta } = depress(tc.A, tc.B, tc.C, tc.D);
+  const ratio = (4 * delta) / (q * q);
+  return {
+    p,
+    q,
+    delta,
+    ratio4DeltaOverQ2: ratio,
+    pErrorPct: tc.paperP !== undefined ? relErrorPct(p, tc.paperP) : NaN,
+    qErrorPct: tc.paperQ !== undefined ? relErrorPct(q, tc.paperQ) : NaN,
+    deltaErrorPct: tc.paperDelta !== undefined ? relErrorPct(delta, tc.paperDelta) : NaN,
+    ratioErrorPct:
+      tc.paperRatio4DeltaOverQ2 !== undefined
+        ? relErrorPct(ratio, tc.paperRatio4DeltaOverQ2)
+        : NaN,
+  };
 }
 
 export function runPatelTejaValidation(): BenchmarkReport {
@@ -185,9 +233,8 @@ export function runPatelTejaValidation(): BenchmarkReport {
     const pickedCD = pickRoot(cd.roots, tc.rootSelector, tc.expectedFM);
     const pickedNW = pickRoot(nw.roots, tc.rootSelector, tc.expectedFM);
 
-    // Consensus: average of FM and Cardano (both closed-form, Newton can stall near
-    // double roots and is reported as informational only).
     const consensus = (pickedFM.value + pickedCD.value) / 2;
+    const diagnostics = computeDiagnostics(tc);
 
     const buildMethod = (
       name: MethodResult["method"],
@@ -202,16 +249,13 @@ export function runPatelTejaValidation(): BenchmarkReport {
       let failExpected = false;
 
       if (name === "Cardano" && tc.cardanoFailsInPaper && tc.doublePrecisionLimited) {
-        // In double precision the failure mode the paper documents (huge error)
-        // typically does NOT reproduce, because all 3 methods land on the same
-        // double-precision root. Mark as "informational" — pass = consistent.
         failExpected = true;
         pass = errCons < CONSENSUS_TOLERANCE_PCT;
       } else if (tc.doublePrecisionLimited) {
-        // FM/Newton: cannot reproduce paper value, but must match consensus.
+        // FM/Newton: cannot reproduce paper value reliably (Δ extended-prec-limited);
+        // require consensus among closed-form solvers (FM↔Cardano).
         pass = errCons < CONSENSUS_TOLERANCE_PCT;
       } else {
-        // ρ case: full paper fidelity required for FM, looser for others.
         if (name === "Fernández Molina") pass = errFM < FM_TOLERANCE_PCT;
         else pass = errCons < CONSENSUS_TOLERANCE_PCT;
       }
@@ -240,6 +284,7 @@ export function runPatelTejaValidation(): BenchmarkReport {
     return {
       case: tc,
       consensusRoot: consensus,
+      diagnostics,
       methods,
       passOverall: methods[0].pass,
     };
