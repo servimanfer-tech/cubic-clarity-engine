@@ -10,7 +10,9 @@ export const fmtC = (c: Complex, digits = 6): string => {
   return `${r} ${i >= 0 ? "+" : "-"} ${Math.abs(i)}i`;
 };
 
-export const isReal = (c: Complex, tol = 1e-8) => Math.abs(c.im) < tol;
+export function isReal(c: Complex, tol = 1e-8): boolean {
+  return Math.abs(c.im) < tol;
+}
 
 export interface SolveResult {
   method: string;
@@ -124,6 +126,20 @@ export function solveNewton(
 }
 
 // ---------- Fernández Molina — series method ----------
+// Branches in execution order:
+//   B1. (p≈0, q≈0)         → triple root y=0                          [closed form]
+//   B2. p≈0, q≠0           → Eq. (57) on q-axis                       [closed form]
+//   B3. Δ≈0, p,q ≠ 0       → y₁=−(4q)^{1/3}, y₂=y₃=(q/2)^{1/3}        [closed form]
+//   B4. p³+27q²/2 ≈ 0      → Eq. (37)+(58) special curve              [closed form]
+//   B5. Δ < 0              → trigonometric (Viète) — paper notes M is imaginary
+//   B6. |ratio − 1| < δ    → BUFFER ZONE: Newton-Raphson refined fallback
+//   B7. otherwise          → Series A or Series B (paper Eq. 17 / 30)
+export const FM_BUFFER_DELTA = 0.05; // half-width of buffer around |ratio|=1
+export const FM_TOL_P = 1e-12;
+export const FM_TOL_Q = 1e-15;
+export const FM_TOL_DELTA = 1e-14;
+export const FM_TOL_CURVE = 1e-12;
+
 export function solveFernandezMolina(
   A: number, B: number, C: number, D: number,
   epsilon = 1e-12,
@@ -132,22 +148,115 @@ export function solveFernandezMolina(
   const { p, q, delta, shift } = depress(A, B, C, D);
   const trace: number[] = [];
 
-  if (Math.abs(q) < 1e-15) {
-    const cardano = solveCardano(A, B, C, D);
-    return { ...cardano, method: "Fernández Molina (closed form q≈0)", iterations: 1 };
+  const pAbs = Math.abs(p);
+  const qAbs = Math.abs(q);
+  const dAbs = Math.abs(delta);
+  const curve = p * p * p + (27 * q * q) / 2;
+
+  // ----- B1: triple root at y=0 (Eq. trivial)
+  if (pAbs < FM_TOL_P && qAbs < FM_TOL_Q) {
+    const r = -shift;
+    return {
+      method: "Fernández Molina (closed form: triple root)",
+      roots: [{ re: r, im: 0 }, { re: r, im: 0 }, { re: r, im: 0 }],
+      iterations: 0,
+      convergenceTrace: [r],
+      notes: "p≈0, q≈0 → y³=0",
+    };
   }
 
+  // ----- B2: p ≈ 0, q ≠ 0 (Eq. 57): y₁ = −q^{1/3}; y₂,₃ = (q^{1/3}/2)(1 ± i√3)
+  if (pAbs < FM_TOL_P) {
+    const cq = Math.sign(q) * Math.cbrt(qAbs); // real cube root of q
+    const y1 = -cq;
+    const re = cq / 2;
+    const im = (Math.sqrt(3) / 2) * cq;
+    return {
+      method: "Fernández Molina (closed form: q-axis, Eq. 57)",
+      roots: [
+        { re: y1 - shift, im: 0 },
+        { re: re - shift, im: im },
+        { re: re - shift, im: -im },
+      ],
+      iterations: 0,
+      convergenceTrace: [y1 - shift],
+      notes: "p≈0 ⇒ y³+q=0 (Eq. 57)",
+    };
+  }
+
+  // ----- B3: Δ ≈ 0, p,q ≠ 0  → y₁=−(4q)^{1/3}, y₂=y₃=(q/2)^{1/3}
+  //  (note paper sign convention: y₂=y₃ shares sign of (q/2)^{1/3})
+  if (dAbs < FM_TOL_DELTA) {
+    const fourq = 4 * q;
+    const y1 = -Math.sign(fourq) * Math.cbrt(Math.abs(fourq));
+    const y23 = Math.sign(q / 2) * Math.cbrt(Math.abs(q / 2));
+    return {
+      method: "Fernández Molina (closed form: Δ≈0)",
+      roots: [
+        { re: y1 - shift, im: 0 },
+        { re: y23 - shift, im: 0 },
+        { re: y23 - shift, im: 0 },
+      ],
+      iterations: 0,
+      convergenceTrace: [y1 - shift],
+      notes: "Δ≈0 (double root)",
+    };
+  }
+
+  // ----- B4: special curve p³ + 27q²/2 = 0  (Eq. 37 + 58)
+  // y₁ = −(q/4)^{1/3}(1+√3);  y₂,₃ from Eq. (58)
+  if (Math.abs(curve) / Math.max(1, pAbs ** 3, qAbs * qAbs) < FM_TOL_CURVE) {
+    const qOver4 = q / 4;
+    const c = Math.sign(qOver4) * Math.cbrt(Math.abs(qOver4));
+    const y1 = -c * (1 + Math.sqrt(3));
+    // Eq. (58): the other two via deflation (kept consistent with paper structure)
+    const root1 = y1 - shift;
+    const b1 = B + A * root1;
+    const c1 = C + b1 * root1;
+    const disc = b1 * b1 - 4 * A * c1;
+    const roots: Complex[] = [{ re: root1, im: 0 }];
+    if (disc >= 0) {
+      const s = Math.sqrt(disc);
+      roots.push({ re: (-b1 + s) / (2 * A), im: 0 });
+      roots.push({ re: (-b1 - s) / (2 * A), im: 0 });
+    } else {
+      const s = Math.sqrt(-disc);
+      roots.push({ re: -b1 / (2 * A), im: s / (2 * A) });
+      roots.push({ re: -b1 / (2 * A), im: -s / (2 * A) });
+    }
+    return {
+      method: "Fernández Molina (closed form: curve Eq. 37/58)",
+      roots,
+      iterations: 0,
+      convergenceTrace: [root1],
+      notes: "p³ + 27q²/2 ≈ 0",
+    };
+  }
+
+  // ----- B5: Δ < 0  → trigonometric (Viète)
   if (delta < 0) {
     const cardano = solveCardano(A, B, C, D);
     return {
       ...cardano,
-      method: "Fernández Molina (trig branch, Δ<0)",
+      method: "Fernández Molina (trigonometric branch, Δ<0)",
       iterations: 1,
-      notes: "Δ<0: closed-form trigonometric path used.",
+      notes: "Δ<0: M is imaginary; trigonometric form used (Viète).",
     };
   }
 
+  // ----- B6: BUFFER zone around |ratio| ≈ 1
   const ratio = (q * q) / (4 * delta);
+  if (Math.abs(Math.abs(ratio) - 1) < FM_BUFFER_DELTA) {
+    // Use Newton-Raphson and label it as buffer fallback
+    const nw = solveNewton(A, B, C, D, epsilon, 200);
+    return {
+      ...nw,
+      method: "Fernández Molina (BUFFER fallback: Newton, |ratio|≈1)",
+      notes: `Buffer zone |ratio−1|<${FM_BUFFER_DELTA}: series convergence too slow, switched to Newton-Raphson.`,
+    };
+  }
+
+  // ----- B7: Series A or Series B
   const useA = Math.abs(ratio) < 1;
   const z = useA ? (q * q) / (4 * delta) : (4 * delta) / (q * q);
   let S = 0;
@@ -156,38 +265,38 @@ export function solveFernandezMolina(
 
   let x1 = 0;
   let terms = 0;
+  // Incremental binomial recurrence: c_{i+1} = c_i · (1/3 − i)/(i+1)
+  // For series A we sum over odd indices (2k+1); for B over even (2k).
   if (useA) {
+    let cc = 1; // C(1/3, 0) = 1
     let kIdx = 0;
-    let kAcc = 0;
     const factor = Math.cbrt(z);
-    while (kAcc < maxTerms) {
-      let cc = 1;
-      for (let i = 0; i < kIdx; i++) cc *= (1 / 3 - i) / (i + 1);
+    for (let kAcc = 0; kAcc < maxTerms; kAcc++) {
+      // Advance cc until idx === kIdx (target = 2k+1)
+      while (kIdx < 2 * kAcc + 1) {
+        cc *= (1 / 3 - kIdx) / (kIdx + 1);
+        kIdx++;
+      }
       const term = cc * Math.pow(z, kAcc);
       S += term;
-      const partial = prefactor * factor * S - shift;
-      partials.push(partial);
+      partials.push(prefactor * factor * S - shift);
       terms = kAcc + 1;
       if (Math.abs(term) < epsilon && kAcc > 2) break;
-      kAcc += 1;
-      kIdx += 2;
     }
     x1 = prefactor * factor * S;
-    
   } else {
+    let cc = 1;
     let kIdx = 0;
-    let kAcc = 0;
-    while (kAcc < maxTerms) {
-      let cc = 1;
-      for (let i = 0; i < kIdx; i++) cc *= (1 / 3 - i) / (i + 1);
+    for (let kAcc = 0; kAcc < maxTerms; kAcc++) {
+      while (kIdx < 2 * kAcc) {
+        cc *= (1 / 3 - kIdx) / (kIdx + 1);
+        kIdx++;
+      }
       const term = cc * Math.pow(z, kAcc);
       S += term;
-      const partial = prefactor * S - shift;
-      partials.push(partial);
+      partials.push(prefactor * S - shift);
       terms = kAcc + 1;
       if (Math.abs(term) < epsilon && kAcc > 2) break;
-      kAcc += 1;
-      kIdx += 2;
     }
     x1 = prefactor * S;
   }
@@ -195,6 +304,7 @@ export function solveFernandezMolina(
   const root1 = x1 - shift;
   trace.push(...partials);
 
+  // Stabilized deflation Eq. (51)–(53)
   const R = B * B - 4 * A * C - 2 * A * B * root1 - 3 * A * A * root1 * root1;
   const roots: Complex[] = [{ re: root1, im: 0 }];
   if (R >= 0) {

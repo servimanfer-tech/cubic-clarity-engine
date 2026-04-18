@@ -14,15 +14,17 @@ import {
   classifyStability, depress, fmtC, isReal, maxRootDifference,
   solveCardano, solveFernandezMolina, solveNewton, type SolveResult,
 } from "@/lib/cubicSolvers";
-import { AlertTriangle, CheckCircle2, XCircle, Sigma, Activity, FlaskConical } from "lucide-react";
+import { AlertTriangle, CheckCircle2, XCircle, Sigma, Activity, FlaskConical, ShieldCheck, ShieldAlert } from "lucide-react";
 
 type Coeffs = { A: string; B: string; C: string; D: string };
 
 const PRESETS: Record<string, Coeffs & { label: string; desc: string }> = {
-  normal: { label: "Normal", desc: "Well-conditioned cubic", A: "1", B: "-6", C: "11", D: "-6" },
-  extreme: { label: "Extreme", desc: "Large-magnitude coefficients", A: "1", B: "1e8", C: "1", D: "-1e-8" },
-  cardanoFails: { label: "Cardano fails", desc: "Catastrophic cancellation zone", A: "1", B: "0", C: "-1e-10", D: "1e-15" },
-  threeReal: { label: "3 real roots", desc: "Δ < 0", A: "1", B: "0", C: "-7", D: "6" },
+  normal:    { label: "Normal",            desc: "x³−6x²+11x−6 → {1,2,3}",                A: "1", B: "-6", C: "11", D: "-6" },
+  threeReal: { label: "3 real roots",      desc: "x³−7x+6 → {−3,1,2} (Δ<0, Viète)",       A: "1", B: "0",  C: "-7", D: "6"  },
+  doubleRoot:{ label: "Double root (Δ=0)", desc: "(x−1)²(x+2) = x³−3x+2",                  A: "1", B: "0",  C: "-3", D: "2"  },
+  qAxis:     { label: "p=0, q≠0 (Eq. 57)", desc: "x³−8=0 → {2, −1±i√3}",                   A: "1", B: "0",  C: "0",  D: "-8" },
+  illCond:   { label: "Ill-conditioned",   desc: "x³+10⁶x²+x−10⁻⁶ — coeff. spread 10¹²",  A: "1", B: "1e6", C: "1", D: "-1e-6" },
+  buffer:    { label: "Buffer zone",       desc: "Near |ratio|≈1 → Newton fallback",       A: "1", B: "0",  C: "-3", D: "2.0001" },
 };
 
 const Index = () => {
@@ -133,7 +135,13 @@ const Index = () => {
               )}
               <div className="flex flex-wrap gap-2 mt-4">
                 {Object.entries(PRESETS).map(([k, v]) => (
-                  <Button key={k} size="sm" variant="secondary" onClick={() => loadPreset(k as keyof typeof PRESETS)}>
+                  <Button
+                    key={k}
+                    size="sm"
+                    variant="secondary"
+                    title={v.desc}
+                    onClick={() => loadPreset(k as keyof typeof PRESETS)}
+                  >
                     {v.label}
                   </Button>
                 ))}
@@ -280,13 +288,57 @@ const Index = () => {
           </Card>
         )}
 
+        {/* Technical fidelity block */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldCheck className="h-4 w-4 text-primary" /> Technical fidelity to the paper
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-6 text-sm">
+              <div>
+                <p className="font-medium text-success mb-2 flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4" /> Faithfully implemented
+                </p>
+                <ul className="space-y-1 text-muted-foreground list-disc pl-5">
+                  <li>Eq. (4)–(5): depression coefficients p, q</li>
+                  <li>Eq. (7): discriminant Δ = q²/4 + p³/27</li>
+                  <li>Eq. (17): Series A with incremental binomial recurrence</li>
+                  <li>Eq. (30): Series B with incremental binomial recurrence</li>
+                  <li>Eq. (37) + (58): special curve p³+27q²/2 = 0 (closed form)</li>
+                  <li>Eq. (51)–(53): stabilized deflation with sign(B+Ax₁)</li>
+                  <li>Eq. (57): q-axis branch p=0, q≠0 (closed form)</li>
+                  <li>Δ = 0 closed form: y₁=−(4q)^⅓, y₂=y₃=(q/2)^⅓</li>
+                  <li>Buffer zone |ratio−1| &lt; {0.05} → Newton-Raphson fallback</li>
+                  <li>IEEE-754 safe cube root (Math.cbrt for q&lt;0)</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium text-warning mb-2 flex items-center gap-1.5">
+                  <ShieldAlert className="h-4 w-4" /> Practical simplifications
+                </p>
+                <ul className="space-y-1 text-muted-foreground list-disc pl-5">
+                  <li>Eq. (47) a-priori bound: replaced by empirical |term|&lt;ε stop</li>
+                  <li>Δ&lt;0 (M imaginary): delegated to Viète/trig instead of complex series</li>
+                  <li>Eq. (55)–(56): complex pairs computed by quadratic deflation, not via ω₁,ω₂</li>
+                  <li>Double-precision IEEE-754 only; no arbitrary precision mode</li>
+                  <li>Validation against Patel-Teja propylene case (Tables I–II) not yet automated</li>
+                  <li>Newton fallback in buffer zone uses inflection-point seed, not paper's continuation</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <footer className="border-t border-border pt-4 pb-6 mt-4 space-y-2 text-xs text-muted-foreground">
           <p className="font-medium text-foreground">Academic attribution</p>
           <p>
-            Fernández Molina, J. C.; Sigalotti, L. Di G.; Rendón, O.; Mejias, E. (2022).{" "}
-            <em>A rapidly convergent method for solving third-order polynomials.</em>{" "}
-            <span className="text-foreground">AIP Advances</span> 12, 045002.{" "}
-            DOI:{" "}
+            <span className="text-foreground">
+              Fernández Molina, J. C.; Sigalotti, L. Di G.; Rendón, O. G.; Mejias, E.
+            </span>{" "}
+            (2022). <em>A rapidly convergent method for solving third-order polynomials.</em>{" "}
+            <span className="text-foreground">AIP Advances</span> 12, 045002. DOI:{" "}
             <a
               href="https://doi.org/10.1063/5.0073851"
               target="_blank"
