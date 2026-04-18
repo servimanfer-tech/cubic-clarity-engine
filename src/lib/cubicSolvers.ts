@@ -33,6 +33,19 @@ export function depress(A: number, B: number, C: number, D: number) {
   return { p, q, delta, shift };
 }
 
+export function getStableCubicMetrics(A: number, B: number, C: number, D: number) {
+  const { p, q } = depress(A, B, C, D);
+  const discriminant =
+    B * B * C * C -
+    4 * A * C ** 3 -
+    4 * B ** 3 * D -
+    27 * A * A * D * D +
+    18 * A * B * C * D;
+  const delta = -discriminant / (108 * A ** 4);
+  const ratio = (q * q) / (4 * delta);
+  return { p, q, delta, ratio, discriminant };
+}
+
 // ---------- Cardano ----------
 export function solveCardano(A: number, B: number, C: number, D: number): SolveResult {
   const { p, q, delta, shift } = depress(A, B, C, D);
@@ -341,11 +354,11 @@ export type Stability = "green" | "yellow" | "red";
 export function classifyStability(A: number, B: number, C: number, D: number): {
   level: Stability; ratio: number; reason: string;
 } {
-  const { delta, q } = depress(A, B, C, D);
+  const { delta, ratio } = getStableCubicMetrics(A, B, C, D);
   if (!isFinite(delta) || Math.abs(delta) < 1e-18) {
     return { level: "yellow", ratio: NaN, reason: "Δ ≈ 0 (multiple roots / boundary)" };
   }
-  const r = Math.abs((q * q) / (4 * delta));
+  const r = Math.abs(ratio);
   if (!isFinite(r)) return { level: "red", ratio: r, reason: "Non-finite ratio" };
   if (Math.abs(r - 1) < 0.05) return { level: "yellow", ratio: r, reason: "Near convergence boundary |r|≈1" };
   if (r < 0.7 || r > 1.5) return { level: "green", ratio: r, reason: "Series converges quickly" };
