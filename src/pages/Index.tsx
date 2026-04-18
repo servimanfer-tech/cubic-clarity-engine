@@ -135,7 +135,13 @@ const Index = () => {
               )}
               <div className="flex flex-wrap gap-2 mt-4">
                 {Object.entries(PRESETS).map(([k, v]) => (
-                  <Button key={k} size="sm" variant="secondary" onClick={() => loadPreset(k as keyof typeof PRESETS)}>
+                  <Button
+                    key={k}
+                    size="sm"
+                    variant="secondary"
+                    title={v.desc}
+                    onClick={() => loadPreset(k as keyof typeof PRESETS)}
+                  >
                     {v.label}
                   </Button>
                 ))}
