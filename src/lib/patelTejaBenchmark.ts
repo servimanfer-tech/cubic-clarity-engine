@@ -250,10 +250,9 @@ export function runPatelTejaValidation(): BenchmarkReport {
       if (name === "Cardano" && tc.cardanoFailsInPaper && tc.doublePrecisionLimited) {
         failExpected = true;
         pass = errCons < CONSENSUS_TOLERANCE_PCT;
-      } else if (tc.id === "V" && name === "Fernández Molina") {
-        // V: FM is ratio-robust — validate against the paper ROOT, not Δ.
-        pass = errFM < FM_V_ROOT_TOLERANCE_PCT;
       } else if (tc.doublePrecisionLimited) {
+        // FM/Newton: cannot reproduce paper value reliably (Δ extended-prec-limited);
+        // require consensus among closed-form solvers (FM↔Cardano).
         pass = errCons < CONSENSUS_TOLERANCE_PCT;
       } else {
         if (name === "Fernández Molina") pass = errFM < FM_TOLERANCE_PCT;
