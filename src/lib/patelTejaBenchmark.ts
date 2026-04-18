@@ -19,6 +19,7 @@
 //       precision. This is the test that is *strictly* enforced.
 
 import {
+  depress,
   solveCardano,
   solveFernandezMolina,
   solveNewton,
@@ -44,6 +45,24 @@ export interface PatelTejaCase {
   rootSelector: "smallest-positive-real" | "closest-to-expected";
   /** True when the paper's expected root is unreachable with IEEE-754 doubles. */
   doublePrecisionLimited: boolean;
+  /** Reference values from Table I of the paper (extended precision). */
+  paperP?: number;
+  paperQ?: number;
+  paperDelta?: number;
+  paperRatio4DeltaOverQ2?: number;
+  /** Extra technical note shown in UI for this case. */
+  technicalNote?: string;
+}
+
+export interface CaseDiagnostics {
+  p: number;
+  q: number;
+  delta: number;
+  ratio4DeltaOverQ2: number;
+  pErrorPct: number;
+  qErrorPct: number;
+  deltaErrorPct: number;
+  ratioErrorPct: number;
 }
 
 export const PATEL_TEJA_CASES: PatelTejaCase[] = [
