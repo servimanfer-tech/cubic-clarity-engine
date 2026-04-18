@@ -160,17 +160,22 @@ const Index = () => {
                 <p className="text-sm text-destructive mt-3">Invalid input. A must be a non-zero finite number.</p>
               )}
               <div className="flex flex-wrap gap-2 mt-4">
-                {Object.entries(PRESETS).map(([k, v]) => (
-                  <Button
-                    key={k}
-                    size="sm"
-                    variant="secondary"
-                    title={v.desc}
-                    onClick={() => loadPreset(k as keyof typeof PRESETS)}
-                  >
-                    {v.label}
-                  </Button>
-                ))}
+                {Object.entries(PRESETS).map(([k, v]) => {
+                  const isActive = activePreset === k;
+                  return (
+                    <Button
+                      key={k}
+                      size="sm"
+                      variant="secondary"
+                      title={v.desc}
+                      onClick={() => loadPreset(k as keyof typeof PRESETS)}
+                      className={isActive ? "border-2 border-primary bg-primary/15 text-foreground hover:bg-primary/20" : ""}
+                      aria-pressed={isActive}
+                    >
+                      {v.label}
+                    </Button>
+                  );
+                })}
                 <div className="w-px bg-border mx-1" aria-hidden />
                 <Button
                   size="sm"
