@@ -10,7 +10,9 @@ export const fmtC = (c: Complex, digits = 6): string => {
   return `${r} ${i >= 0 ? "+" : "-"} ${Math.abs(i)}i`;
 };
 
-export const isReal = (c: Complex, tol?: number) => Math.abs(c.im) < (tol ?? 1e-8);
+export function isReal(c: Complex, tol = 1e-8): boolean {
+  return Math.abs(c.im) < tol;
+}
 
 export interface SolveResult {
   method: string;
