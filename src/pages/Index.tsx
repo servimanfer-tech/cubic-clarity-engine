@@ -289,6 +289,9 @@ const Index = () => {
           </Card>
         )}
 
+        {/* Patel-Teja published-benchmark validation */}
+        <PatelTejaPanel />
+
         {/* Technical fidelity block */}
         <Card>
           <CardHeader>
