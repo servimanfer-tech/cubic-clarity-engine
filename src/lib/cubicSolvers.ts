@@ -155,6 +155,7 @@ export function solveFernandezMolina(
   const prefactor = -Math.sign(4 * q) * Math.cbrt(Math.abs(4 * q));
 
   let x1 = 0;
+  let terms = 0;
   if (useA) {
     let kIdx = 0;
     let kAcc = 0;
@@ -172,7 +173,7 @@ export function solveFernandezMolina(
       kIdx += 2;
     }
     x1 = prefactor * factor * S;
-    void c;
+    
   } else {
     let kIdx = 0;
     let kAcc = 0;
