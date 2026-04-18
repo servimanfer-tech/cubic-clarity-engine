@@ -125,9 +125,10 @@ export const PATEL_TEJA_CASES: PatelTejaCase[] = [
     paperDelta: -2.031529423171598e37,
     paperRatio4DeltaOverQ2: -4.665761448845184e-15,
     technicalNote:
-      "Δ requiere precisión extendida para reproducirse exactamente (cancelación catastrófica entre q²/4 y p³/27, ambos ~4.35e51, ~14 dígitos perdidos). " +
-      "En doble precisión, FM y Cardano (vía Viète) convergen a un triplete real alternativo numéricamente consistente con Vieta (Σraíces ≈ -B/A) pero distinto al del paper. " +
-      "Newton-Raphson sí reproduce la raíz publicada 1.0626 (error ~1.7×10⁻⁵ %) cuando parte de un guess cercano. Reproducir el triplete exacto del paper requiere precisión extendida.",
+      "En double, el polinomio V está severamente mal condicionado: Δ pierde ~14 dígitos por cancelación catastrófica (q²/4 ≈ p³/27 ≈ 4.35e51). " +
+      "Newton-Raphson converge a 1.0626 desde semillas cercanas a 1, donde f(x)=0 exacto en IEEE-754 — pero es un cero espurio: el triplete no satisface las relaciones de Vieta. " +
+      "FM y Cardano (Viète) producen un triplete diferente, internamente consistente pero igualmente artefactual. " +
+      "Este caso requiere precisión extendida (≥128-bit) para ser resuelto correctamente. El paper lo calculó fuera de double.",
   },
 ];
 
