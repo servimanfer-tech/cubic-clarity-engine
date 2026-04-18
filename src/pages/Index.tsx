@@ -14,15 +14,17 @@ import {
   classifyStability, depress, fmtC, isReal, maxRootDifference,
   solveCardano, solveFernandezMolina, solveNewton, type SolveResult,
 } from "@/lib/cubicSolvers";
-import { AlertTriangle, CheckCircle2, XCircle, Sigma, Activity, FlaskConical } from "lucide-react";
+import { AlertTriangle, CheckCircle2, XCircle, Sigma, Activity, FlaskConical, ShieldCheck, ShieldAlert } from "lucide-react";
 
 type Coeffs = { A: string; B: string; C: string; D: string };
 
 const PRESETS: Record<string, Coeffs & { label: string; desc: string }> = {
-  normal: { label: "Normal", desc: "Well-conditioned cubic", A: "1", B: "-6", C: "11", D: "-6" },
-  extreme: { label: "Extreme", desc: "Large-magnitude coefficients", A: "1", B: "1e8", C: "1", D: "-1e-8" },
-  cardanoFails: { label: "Cardano fails", desc: "Catastrophic cancellation zone", A: "1", B: "0", C: "-1e-10", D: "1e-15" },
-  threeReal: { label: "3 real roots", desc: "Δ < 0", A: "1", B: "0", C: "-7", D: "6" },
+  normal:    { label: "Normal",            desc: "x³−6x²+11x−6 → {1,2,3}",                A: "1", B: "-6", C: "11", D: "-6" },
+  threeReal: { label: "3 real roots",      desc: "x³−7x+6 → {−3,1,2} (Δ<0, Viète)",       A: "1", B: "0",  C: "-7", D: "6"  },
+  doubleRoot:{ label: "Double root (Δ=0)", desc: "(x−1)²(x+2) = x³−3x+2",                  A: "1", B: "0",  C: "-3", D: "2"  },
+  qAxis:     { label: "p=0, q≠0 (Eq. 57)", desc: "x³−8=0 → {2, −1±i√3}",                   A: "1", B: "0",  C: "0",  D: "-8" },
+  illCond:   { label: "Ill-conditioned",   desc: "x³+10⁶x²+x−10⁻⁶ — coeff. spread 10¹²",  A: "1", B: "1e6", C: "1", D: "-1e-6" },
+  buffer:    { label: "Buffer zone",       desc: "Near |ratio|≈1 → Newton fallback",       A: "1", B: "0",  C: "-3", D: "2.0001" },
 };
 
 const Index = () => {
