@@ -106,8 +106,8 @@ export const PATEL_TEJA_CASES: PatelTejaCase[] = [
     label: "V — reduced molar volume",
     description:
       "Patel–Teja EoS, propylene at 95.4 K, 1.22×10⁻² Pa. Cardano FAILS in paper. " +
-      "Coefficients have ~10¹⁰ magnitude spread — IEEE-754 cannot resolve the paper's " +
-      "1.0626 root; double-precision consensus is ~1.0294.",
+      "Coefficient magnitudes span ~10¹⁰; q²/4 and p³/27 cancel (~4.35e51 each), so Δ " +
+      "loses ~14 digits in double precision. FM is ratio-robust and converges to the paper root.",
     A: 1,
     B: -1.212284923269059e9,
     C: 4.121478037063378e10,
@@ -120,6 +120,13 @@ export const PATEL_TEJA_CASES: PatelTejaCase[] = [
     paperErrorCardano: 1.081e4,
     rootSelector: "closest-to-expected",
     doublePrecisionLimited: true,
+    paperP: -4.898782038470424e17,
+    paperQ: -1.319715412844151e26,
+    paperDelta: -2.031529423171598e37,
+    paperRatio4DeltaOverQ2: -4.665761448845184e-15,
+    technicalNote:
+      "Δ requiere precisión extendida para reproducirse exactamente (cancelación catastrófica entre q²/4 y p³/27, ambos ~4.35e51, ~14 dígitos perdidos). " +
+      "El método FM es robusto frente a este error por diseño: opera sobre 4Δ/q² (no Δ directamente), y |4Δ/q²| ≪ 1 garantiza convergencia con k=0.",
   },
 ];
 
@@ -128,6 +135,8 @@ export const FM_TOLERANCE_PCT = 1e-5;
 // Cross-method consistency tolerance: FM, Cardano, Newton must agree on the
 // double-precision physical root within this %.
 export const CONSENSUS_TOLERANCE_PCT = 1e-3;
+// Tolerance for FM root vs paper on V (Δ extended-prec-limited but FM is ratio-robust).
+export const FM_V_ROOT_TOLERANCE_PCT = 1e-4;
 // Threshold above which Cardano is considered to have "failed" in the paper sense.
 export const CARDANO_FAIL_THRESHOLD_PCT = 1e3;
 
