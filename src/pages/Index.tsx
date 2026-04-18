@@ -280,8 +280,27 @@ const Index = () => {
           </Card>
         )}
 
-        <footer className="text-center text-xs text-muted-foreground py-4">
-          Demo implementation for educational purposes. Reference: Fernández Molina, Sigalotti, Rendón, Mejias (2022).
+        <footer className="border-t border-border pt-4 pb-6 mt-4 space-y-2 text-xs text-muted-foreground">
+          <p className="font-medium text-foreground">Academic attribution</p>
+          <p>
+            Fernández Molina, J. C.; Sigalotti, L. Di G.; Rendón, O.; Mejias, E. (2022).{" "}
+            <em>A rapidly convergent method for solving third-order polynomials.</em>{" "}
+            <span className="text-foreground">AIP Advances</span> 12, 045002.{" "}
+            DOI:{" "}
+            <a
+              href="https://doi.org/10.1063/5.0073851"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              10.1063/5.0073851
+            </a>
+            .
+          </p>
+          <p>
+            This interactive demo is an independent educational implementation. It is not affiliated
+            with or endorsed by the original authors. All theoretical content belongs to the cited authors.
+          </p>
         </footer>
       </main>
     </div>
