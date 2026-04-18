@@ -126,7 +126,8 @@ export const PATEL_TEJA_CASES: PatelTejaCase[] = [
     paperRatio4DeltaOverQ2: -4.665761448845184e-15,
     technicalNote:
       "Δ requiere precisión extendida para reproducirse exactamente (cancelación catastrófica entre q²/4 y p³/27, ambos ~4.35e51, ~14 dígitos perdidos). " +
-      "El método FM es robusto frente a este error por diseño: opera sobre 4Δ/q² (no Δ directamente), y |4Δ/q²| ≪ 1 garantiza convergencia con k=0.",
+      "En doble precisión, FM y Cardano (vía Viète) convergen a un triplete real alternativo numéricamente consistente con Vieta (Σraíces ≈ -B/A) pero distinto al del paper. " +
+      "Newton-Raphson sí reproduce la raíz publicada 1.0626 (error ~1.7×10⁻⁵ %) cuando parte de un guess cercano. Reproducir el triplete exacto del paper requiere precisión extendida.",
   },
 ];
 
