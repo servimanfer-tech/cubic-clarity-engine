@@ -59,6 +59,19 @@ const Index = () => {
     setC({ A: p.A, B: p.B, C: p.C, D: p.D });
   };
 
+  const activePreset = useMemo(() => {
+    const eq = (a: string, b: string) => {
+      const na = parseFloat(a), nb = parseFloat(b);
+      if (!Number.isFinite(na) || !Number.isFinite(nb)) return a === b;
+      if (na === nb) return true;
+      const scale = Math.max(Math.abs(na), Math.abs(nb), 1);
+      return Math.abs(na - nb) / scale < 1e-12;
+    };
+    return Object.entries(PRESETS).find(([, p]) =>
+      eq(p.A, c.A) && eq(p.B, c.B) && eq(p.C, c.C) && eq(p.D, c.D)
+    )?.[0] ?? null;
+  }, [c]);
+
   const stabBadge = (lvl: "green" | "yellow" | "red") => {
     if (lvl === "green") return (
       <Badge className="bg-success text-success-foreground gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Stable</Badge>
