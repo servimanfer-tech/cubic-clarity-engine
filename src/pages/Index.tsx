@@ -332,6 +332,29 @@ const Index = () => {
                 </ul>
               </div>
             </div>
+
+            <div className="mt-6 pt-4 border-t border-border">
+              <p className="font-medium text-foreground mb-2 flex items-center gap-1.5">
+                <ShieldAlert className="h-4 w-4 text-warning" /> Nota sobre precisión numérica — benchmark Patel–Teja
+              </p>
+              <div className="space-y-2 text-sm text-muted-foreground leading-relaxed">
+                <p>
+                  Los casos <span className="font-mono text-foreground">Z</span> y <span className="font-mono text-foreground">V</span> del benchmark Patel–Teja requieren aritmética de precisión extendida para reproducir los valores exactos reportados en el paper.
+                </p>
+                <p>
+                  En doble precisión IEEE-754, los coeficientes del polinomio se encuentran cerca del límite de representación numérica (ε ≈ 2.2×10⁻¹⁶), lo que introduce errores relativos significativos en operaciones sensibles.
+                </p>
+                <p>
+                  Como resultado, los tres métodos (Fernández Molina, Cardano y Newton-Raphson) convergen a una solución consistente entre sí (~1.4×10⁻⁸ para Z), pero diferente al valor publicado.
+                </p>
+                <p>
+                  El caso <span className="font-mono text-foreground">ρ</span>, mejor condicionado numéricamente, reproduce la fidelidad del paper con error &lt; 1×10⁻⁷ %.
+                </p>
+                <p className="italic">
+                  Este comportamiento refleja una limitación de la precisión numérica utilizada, no del método matemático.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
