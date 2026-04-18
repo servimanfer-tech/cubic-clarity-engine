@@ -90,7 +90,7 @@ export const PATEL_TEJA_CASES: PatelTejaCase[] = [
       "Coefficients have ~10¹⁰ magnitude spread — IEEE-754 cannot resolve the paper's " +
       "1.0626 root; double-precision consensus is ~1.0294.",
     A: 1,
-    B: -1.212284923269059,
+    B: -1.212284923269059e9,
     C: 4.121478037063378e10,
     D: -4.242705529596227e10,
     expectedFM: 1.062627261021974,
