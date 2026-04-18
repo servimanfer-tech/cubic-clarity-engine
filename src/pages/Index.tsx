@@ -15,6 +15,7 @@ import {
   solveCardano, solveFernandezMolina, solveNewton, type SolveResult,
 } from "@/lib/cubicSolvers";
 import { AlertTriangle, CheckCircle2, XCircle, Sigma, Activity, FlaskConical, ShieldCheck, ShieldAlert } from "lucide-react";
+import { PatelTejaPanel } from "@/components/PatelTejaPanel";
 
 type Coeffs = { A: string; B: string; C: string; D: string };
 
@@ -287,6 +288,9 @@ const Index = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Patel-Teja published-benchmark validation */}
+        <PatelTejaPanel />
 
         {/* Technical fidelity block */}
         <Card>
