@@ -85,8 +85,8 @@ export const PatelTejaPanel = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {report.cases.flatMap((cr) =>
-                  cr.methods.map((m, i) => (
+                {report.cases.flatMap((cr) => [
+                  ...cr.methods.map((m, i) => (
                     <TableRow key={`${cr.case.id}-${m.method}`}>
                       {i === 0 ? (
                         <TableCell rowSpan={3} className="align-top">
@@ -133,8 +133,56 @@ export const PatelTejaPanel = () => {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  )),
+                  <TableRow key={`${cr.case.id}-diag`} className="bg-muted/30">
+                    <TableCell colSpan={8} className="py-2">
+                      <div className="space-y-1 text-[11px]">
+                        <div className="font-medium text-foreground">
+                          Diagnóstico numérico (caso {cr.case.id})
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0.5 font-mono">
+                          <div>
+                            p = {fmtSmart(cr.diagnostics.p)}
+                            {cr.case.paperP !== undefined && (
+                              <span className="text-muted-foreground">
+                                {" "}· paper: {fmtSmart(cr.case.paperP)} (Δ {fmtPct(cr.diagnostics.pErrorPct)})
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            q = {fmtSmart(cr.diagnostics.q)}
+                            {cr.case.paperQ !== undefined && (
+                              <span className="text-muted-foreground">
+                                {" "}· paper: {fmtSmart(cr.case.paperQ)} (Δ {fmtPct(cr.diagnostics.qErrorPct)})
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            Δ = {fmtSmart(cr.diagnostics.delta)}
+                            {cr.case.paperDelta !== undefined && (
+                              <span className="text-muted-foreground">
+                                {" "}· paper: {fmtSmart(cr.case.paperDelta)} (Δ {fmtPct(cr.diagnostics.deltaErrorPct)})
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            4Δ/q² = {fmtSmart(cr.diagnostics.ratio4DeltaOverQ2)}
+                            {cr.case.paperRatio4DeltaOverQ2 !== undefined && (
+                              <span className="text-muted-foreground">
+                                {" "}· paper: {fmtSmart(cr.case.paperRatio4DeltaOverQ2)} (Δ {fmtPct(cr.diagnostics.ratioErrorPct)})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {cr.case.technicalNote && (
+                          <div className="pt-1 text-muted-foreground italic">
+                            {cr.case.technicalNote}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>,
+                ])}
               </TableBody>
             </Table>
 
