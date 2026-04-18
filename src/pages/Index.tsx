@@ -19,7 +19,7 @@ import { PatelTejaPanel } from "@/components/PatelTejaPanel";
 
 type Coeffs = { A: string; B: string; C: string; D: string };
 
-const DEFAULT_COEFFS: Coeffs = { A: "1", B: "-6", C: "11", D: "-6" };
+const DEFAULT_COEFFS: Coeffs = { A: "1", B: "1e6", C: "1", D: "-1e-6" };
 const EMPTY_COEFFS: Coeffs = { A: "", B: "", C: "", D: "" };
 
 const PRESETS: Record<string, Coeffs & { label: string; desc: string }> = {
@@ -32,7 +32,7 @@ const PRESETS: Record<string, Coeffs & { label: string; desc: string }> = {
 };
 
 const Index = () => {
-  const [c, setC] = useState<Coeffs>({ A: "1", B: "1e6", C: "1", D: "-1e-6" });
+  const [c, setC] = useState<Coeffs>(DEFAULT_COEFFS);
 
   const A = parseFloat(c.A);
   const B = parseFloat(c.B);
