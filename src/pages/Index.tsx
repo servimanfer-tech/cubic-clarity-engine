@@ -14,10 +14,13 @@ import {
   classifyStability, depress, fmtC, isReal, maxRootDifference,
   solveCardano, solveFernandezMolina, solveNewton, type SolveResult,
 } from "@/lib/cubicSolvers";
-import { AlertTriangle, CheckCircle2, XCircle, Sigma, Activity, FlaskConical, ShieldCheck, ShieldAlert } from "lucide-react";
+import { AlertTriangle, CheckCircle2, XCircle, Sigma, Activity, FlaskConical, ShieldCheck, ShieldAlert, RotateCcw, Eraser } from "lucide-react";
 import { PatelTejaPanel } from "@/components/PatelTejaPanel";
 
 type Coeffs = { A: string; B: string; C: string; D: string };
+
+const DEFAULT_COEFFS: Coeffs = { A: "1", B: "-6", C: "11", D: "-6" };
+const EMPTY_COEFFS: Coeffs = { A: "", B: "", C: "", D: "" };
 
 const PRESETS: Record<string, Coeffs & { label: string; desc: string }> = {
   normal:    { label: "Normal",            desc: "x³−6x²+11x−6 → {1,2,3}",                A: "1", B: "-6", C: "11", D: "-6" },
@@ -146,6 +149,23 @@ const Index = () => {
                     {v.label}
                   </Button>
                 ))}
+                <div className="w-px bg-border mx-1" aria-hidden />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  title="Restablecer al caso normal x³−6x²+11x−6"
+                  onClick={() => setC(DEFAULT_COEFFS)}
+                >
+                  <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Reset
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  title="Limpiar todos los campos"
+                  onClick={() => setC(EMPTY_COEFFS)}
+                >
+                  <Eraser className="h-3.5 w-3.5 mr-1.5" /> Limpiar
+                </Button>
               </div>
             </CardContent>
           </Card>
