@@ -11,7 +11,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import {
-  classifyStability, depress, fmtC, isReal, maxRootDifference,
+  classifyStability, depress, fmtC, getStableCubicMetrics, isReal, maxRootDifference,
   solveCardano, solveFernandezMolina, solveNewton, type SolveResult,
 } from "@/lib/cubicSolvers";
 import { AlertTriangle, CheckCircle2, XCircle, Sigma, Activity, FlaskConical, ShieldCheck, ShieldAlert, RotateCcw, Eraser } from "lucide-react";
@@ -19,7 +19,7 @@ import { PatelTejaPanel } from "@/components/PatelTejaPanel";
 
 type Coeffs = { A: string; B: string; C: string; D: string };
 
-const DEFAULT_COEFFS: Coeffs = { A: "1", B: "1e6", C: "1", D: "-1e-6" };
+const DEFAULT_COEFFS: Coeffs = { A: "1", B: "1000000", C: "1", D: "-0.000001" };
 const EMPTY_COEFFS: Coeffs = { A: "", B: "", C: "", D: "" };
 
 const PRESETS: Record<string, Coeffs & { label: string; desc: string }> = {
@@ -27,7 +27,7 @@ const PRESETS: Record<string, Coeffs & { label: string; desc: string }> = {
   threeReal: { label: "3 real roots",      desc: "x³−7x+6 → {−3,1,2} (Δ<0, Viète)",       A: "1", B: "0",  C: "-7", D: "6"  },
   doubleRoot:{ label: "Double root (Δ=0)", desc: "(x−1)²(x+2) = x³−3x+2",                  A: "1", B: "0",  C: "-3", D: "2"  },
   qAxis:     { label: "p=0, q≠0 (Eq. 57)", desc: "x³−8=0 → {2, −1±i√3}",                   A: "1", B: "0",  C: "0",  D: "-8" },
-  illCond:   { label: "Ill-conditioned",   desc: "x³+10⁶x²+x−10⁻⁶ — coeff. spread 10¹²",  A: "1", B: "1e6", C: "1", D: "-1e-6" },
+  illCond:   { label: "Ill-conditioned",   desc: "x³+10⁶x²+x−10⁻⁶ — coeff. spread 10¹²",  A: "1", B: "1000000", C: "1", D: "-0.000001" },
   buffer:    { label: "Buffer zone",       desc: "Near |ratio|≈1 → Newton fallback",       A: "1", B: "0",  C: "-3", D: "2.0001" },
 };
 
@@ -42,8 +42,8 @@ const Index = () => {
 
   const results = useMemo(() => {
     if (!valid) return null;
-    const { p, q, delta } = depress(A, B, Ccoef, D);
-    const ratio = (q * q) / (4 * delta);
+    const { p, q } = depress(A, B, Ccoef, D);
+    const { delta, ratio } = getStableCubicMetrics(A, B, Ccoef, D);
     const fm = solveFernandezMolina(A, B, Ccoef, D);
     const cd = solveCardano(A, B, Ccoef, D);
     const nw = solveNewton(A, B, Ccoef, D);
