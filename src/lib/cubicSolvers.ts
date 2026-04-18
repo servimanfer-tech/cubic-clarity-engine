@@ -154,28 +154,31 @@ export function solveFernandezMolina(
   const partials: number[] = [];
   const prefactor = -Math.sign(4 * q) * Math.cbrt(Math.abs(4 * q));
 
-  let terms = 0;
+  let x1 = 0;
   if (useA) {
-    const zPow = (k: number) => Math.pow(z, k);
+    let kIdx = 0;
     let kAcc = 0;
     const factor = Math.cbrt(z);
     while (kAcc < maxTerms) {
       let cc = 1;
-      for (let i = 0; i < (2 * kAcc + 1); i++) cc *= (1 / 3 - i) / (i + 1);
-      const term = cc * zPow(kAcc);
+      for (let i = 0; i < kIdx; i++) cc *= (1 / 3 - i) / (i + 1);
+      const term = cc * Math.pow(z, kAcc);
       S += term;
       const partial = prefactor * factor * S - shift;
       partials.push(partial);
       terms = kAcc + 1;
       if (Math.abs(term) < epsilon && kAcc > 2) break;
       kAcc += 1;
+      kIdx += 2;
     }
-    var x1 = prefactor * factor * S;
+    x1 = prefactor * factor * S;
+    void c;
   } else {
+    let kIdx = 0;
     let kAcc = 0;
     while (kAcc < maxTerms) {
       let cc = 1;
-      for (let i = 0; i < (2 * kAcc); i++) cc *= (1 / 3 - i) / (i + 1);
+      for (let i = 0; i < kIdx; i++) cc *= (1 / 3 - i) / (i + 1);
       const term = cc * Math.pow(z, kAcc);
       S += term;
       const partial = prefactor * S - shift;
@@ -183,8 +186,9 @@ export function solveFernandezMolina(
       terms = kAcc + 1;
       if (Math.abs(term) < epsilon && kAcc > 2) break;
       kAcc += 1;
+      kIdx += 2;
     }
-    var x1 = prefactor * S;
+    x1 = prefactor * S;
   }
 
   const root1 = x1 - shift;
