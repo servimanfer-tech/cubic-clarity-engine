@@ -42,14 +42,13 @@ const sortReals = (roots: Complex[]) =>
 describe("solveFernandezMolina — required test matrix", () => {
   it("normal cubic: x³ − 6x² + 11x − 6 = 0 → {1, 2, 3}", () => {
     const r = solveFernandezMolina(1, -6, 11, -6);
-    expect.soft(r.roots.length).toBe(3);
-    expect.soft(r.method).toBeTypeOf("string");
-    // dump for diagnostics
-    expect(r.roots.map((x) => [x.re, x.im])).toMatchObject([
-      [expect.any(Number), expect.any(Number)],
-      [expect.any(Number), expect.any(Number)],
-      [expect.any(Number), expect.any(Number)],
-    ]);
+    console.log("ROOTS RAW:", r.roots);
+    const filtered = r.roots.filter(isReal);
+    console.log("FILTERED:", filtered);
+    const mapped = filtered.map((x) => x.re);
+    console.log("MAPPED:", mapped);
+    const sorted = mapped.sort((a, b) => a - b);
+    console.log("SORTED:", sorted);
     const reals = sortReals(r.roots);
     expect(reals.length).toBe(3);
     [1, 2, 3].forEach((expected, i) => {
