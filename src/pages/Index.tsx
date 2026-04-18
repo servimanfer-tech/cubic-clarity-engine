@@ -59,6 +59,19 @@ const Index = () => {
     setC({ A: p.A, B: p.B, C: p.C, D: p.D });
   };
 
+  const activePreset = useMemo(() => {
+    const eq = (a: string, b: string) => {
+      const na = parseFloat(a), nb = parseFloat(b);
+      if (!Number.isFinite(na) || !Number.isFinite(nb)) return a === b;
+      if (na === nb) return true;
+      const scale = Math.max(Math.abs(na), Math.abs(nb), 1);
+      return Math.abs(na - nb) / scale < 1e-12;
+    };
+    return Object.entries(PRESETS).find(([, p]) =>
+      eq(p.A, c.A) && eq(p.B, c.B) && eq(p.C, c.C) && eq(p.D, c.D)
+    )?.[0] ?? null;
+  }, [c]);
+
   const stabBadge = (lvl: "green" | "yellow" | "red") => {
     if (lvl === "green") return (
       <Badge className="bg-success text-success-foreground gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Stable</Badge>
@@ -147,17 +160,22 @@ const Index = () => {
                 <p className="text-sm text-destructive mt-3">Invalid input. A must be a non-zero finite number.</p>
               )}
               <div className="flex flex-wrap gap-2 mt-4">
-                {Object.entries(PRESETS).map(([k, v]) => (
-                  <Button
-                    key={k}
-                    size="sm"
-                    variant="secondary"
-                    title={v.desc}
-                    onClick={() => loadPreset(k as keyof typeof PRESETS)}
-                  >
-                    {v.label}
-                  </Button>
-                ))}
+                {Object.entries(PRESETS).map(([k, v]) => {
+                  const isActive = activePreset === k;
+                  return (
+                    <Button
+                      key={k}
+                      size="sm"
+                      variant="secondary"
+                      title={v.desc}
+                      onClick={() => loadPreset(k as keyof typeof PRESETS)}
+                      className={isActive ? "border-2 border-primary bg-primary/15 text-foreground hover:bg-primary/20" : ""}
+                      aria-pressed={isActive}
+                    >
+                      {v.label}
+                    </Button>
+                  );
+                })}
                 <div className="w-px bg-border mx-1" aria-hidden />
                 <Button
                   size="sm"
