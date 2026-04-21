@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fmcubic"
+version = "0.1.0"
+description = "Reference implementation of the Fernández Molina series method for solving cubic equations (AIP Advances 12, 045002, 2022)."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  {name = "Ramón A. Fernández Molina"},
+  {name = "Leonardo Di G. Sigalotti"},
+  {name = "Otto Rendón"},
+  {name = "Antonio J. Mejías"},
+]
+license = {text = "MIT"}
+
+[tool.setuptools]
+packages = ["fmcubic"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
