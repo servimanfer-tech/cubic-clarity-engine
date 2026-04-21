@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { CheckCircle2, XCircle, AlertTriangle, FlaskConical, PlayCircle } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, FlaskConical, PlayCircle, Github } from "lucide-react";
 import {
   runPatelTejaValidation,
   type BenchmarkReport,
@@ -52,6 +52,22 @@ export const PatelTejaPanel = () => {
               </Badge>
             )
           )}
+          <Button
+            size="sm"
+            variant="outline"
+            asChild
+            className="gap-1"
+            title="Reference Python implementation on GitHub"
+          >
+            <a
+              href="https://github.com/cubic-solvers/fmcubic"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Github className="h-4 w-4" />
+              Python reference (GitHub)
+            </a>
+          </Button>
           <Button size="sm" onClick={run} className="gap-1">
             <PlayCircle className="h-4 w-4" />
             Run Patel-Teja benchmark
