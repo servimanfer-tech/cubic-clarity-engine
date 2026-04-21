@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { CheckCircle2, XCircle, AlertTriangle, FlaskConical, PlayCircle } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, FlaskConical, PlayCircle, Github } from "lucide-react";
 import {
   runPatelTejaValidation,
   type BenchmarkReport,
