@@ -96,17 +96,54 @@ const Index = () => {
     }));
   }, [results]);
 
+  // Evaluate f(x) = A x³ + B x² + C x + D for a complex root using Horner's scheme.
+  // Returns |f(x)| as a real magnitude (suitable for residual display).
+  const evalResidual = (rt: { re: number; im: number }): number => {
+    if (!valid) return NaN;
+    // Horner over complex numbers: ((A*x + B)*x + C)*x + D
+    let zr = A, zi = 0;
+    // step 1: z = A*x + B
+    const t1r = zr * rt.re - zi * rt.im;
+    const t1i = zr * rt.im + zi * rt.re;
+    zr = t1r + B; zi = t1i;
+    // step 2: z = z*x + C
+    const t2r = zr * rt.re - zi * rt.im;
+    const t2i = zr * rt.im + zi * rt.re;
+    zr = t2r + Ccoef; zi = t2i;
+    // step 3: z = z*x + D
+    const t3r = zr * rt.re - zi * rt.im;
+    const t3i = zr * rt.im + zi * rt.re;
+    zr = t3r + D; zi = t3i;
+    return Math.hypot(zr, zi);
+  };
+
+  const fmtResidual = (v: number): string => {
+    if (!Number.isFinite(v)) return "—";
+    if (v === 0) return "0.000e+0";
+    return v.toExponential(3);
+  };
+
   const renderRoots = (r: SolveResult) => (
     <ul className="space-y-1 font-mono text-sm">
-      {r.roots.map((rt, i) => (
-        <li key={i} className="flex items-center gap-2">
-          <span className="text-muted-foreground">x{i + 1} =</span>
-          <span className="text-foreground">{fmtC(rt)}</span>
-          <Badge variant="outline" className="text-[10px] py-0 h-4">
-            {isReal(rt) ? "real" : "complex"}
-          </Badge>
-        </li>
-      ))}
+      {r.roots.map((rt, i) => {
+        const res = evalResidual(rt);
+        const tiny = Number.isFinite(res) && res < 1e-6;
+        return (
+          <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="text-muted-foreground">x{i + 1} =</span>
+            <span className="text-foreground">{fmtC(rt)}</span>
+            <Badge variant="outline" className="text-[10px] py-0 h-4">
+              {isReal(rt) ? "real" : "complex"}
+            </Badge>
+            <span
+              className={`text-[11px] ${tiny ? "text-success" : "text-muted-foreground"}`}
+              title="Residual |f(xᵢ)| evaluated by Horner's scheme"
+            >
+              f(x{i + 1}) = {fmtResidual(res)}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 
