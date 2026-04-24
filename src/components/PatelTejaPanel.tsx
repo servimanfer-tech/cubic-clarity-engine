@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CheckCircle2, XCircle, AlertTriangle, FlaskConical, PlayCircle, Github } from "lucide-react";
 import {
   runPatelTejaValidation,
@@ -135,9 +136,18 @@ export const PatelTejaPanel = () => {
                       </TableCell>
                       <TableCell>
                         {m.failExpected ? (
-                          <Badge variant="outline" className="gap-1 text-[10px]">
-                            <AlertTriangle className="h-3 w-3 text-warning" /> fails-in-paper
-                          </Badge>
+                          <TooltipProvider delayDuration={150}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge className="bg-destructive text-destructive-foreground gap-1 text-[10px] cursor-help">
+                                  <XCircle className="h-3 w-3" /> CARDANO FALLA AQUÍ
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" className="max-w-xs">
+                                Cardano produce un resultado incorrecto en este caso — exactamente la limitación que el método FM resuelve.
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         ) : m.pass ? (
                           <Badge className="bg-success text-success-foreground gap-1 text-[10px]">
                             <CheckCircle2 className="h-3 w-3" /> PASS
