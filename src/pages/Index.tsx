@@ -460,7 +460,7 @@ const Index = () => {
           <p className="font-medium text-foreground">Academic attribution</p>
           <p>
             <span className="text-foreground">
-              Fernández Molina, J. C.; Sigalotti, L. Di G.; Rendón, O. G.; Mejias, E.
+              Fernández Molina, R. A.; Sigalotti, L. Di G.; Rendón, O.; Mejías, A. J.
             </span>{" "}
             (2022). <em>A rapidly convergent method for solving third-order polynomials.</em>{" "}
             <span className="text-foreground">AIP Advances</span> 12, 045002. DOI:{" "}
