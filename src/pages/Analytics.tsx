@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Eye, Globe, Users, TrendingUp } from "lucide-react";
+import { ArrowLeft, Eye, Globe, Users, TrendingUp, UserPlus, Repeat, UserCheck } from "lucide-react";
 
 interface Visit {
   id: string;
@@ -22,6 +22,7 @@ interface Visit {
   country: string | null;
   city: string | null;
   created_at: string;
+  visitor_id: string | null;
 }
 
 const Analytics = () => {
@@ -57,6 +58,42 @@ const Analytics = () => {
     return acc;
   }, {});
 
+  // ---------- Métricas de visitantes únicos ----------
+  // Mapa: visitor_id -> { firstSeen, count }
+  const visitorStats = new Map<string, { firstSeen: number; count: number }>();
+  for (const v of visits) {
+    if (!v.visitor_id) continue;
+    const ts = new Date(v.created_at).getTime();
+    const prev = visitorStats.get(v.visitor_id);
+    if (!prev) {
+      visitorStats.set(v.visitor_id, { firstSeen: ts, count: 1 });
+    } else {
+      prev.count += 1;
+      if (ts < prev.firstSeen) prev.firstSeen = ts;
+    }
+  }
+
+  const uniqueVisitors = visitorStats.size;
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const newToday = Array.from(visitorStats.values()).filter(
+    (s) => s.firstSeen >= startOfToday.getTime()
+  ).length;
+  const recurring = Array.from(visitorStats.values()).filter((s) => s.count > 1).length;
+  const legacyVisits = visits.filter((v) => !v.visitor_id).length;
+
+  // Para badges en la tabla: marcar la primera visita de cada visitor
+  const firstVisitIds = new Set<string>();
+  for (const [vid, stats] of visitorStats.entries()) {
+    // Buscamos el id de la fila correspondiente a su primera visita
+    const firstVisit = visits
+      .filter((v) => v.visitor_id === vid)
+      .reduce((earliest, cur) =>
+        new Date(cur.created_at).getTime() === stats.firstSeen ? cur : earliest
+      );
+    if (firstVisit) firstVisitIds.add(firstVisit.id);
+  }
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -75,6 +112,46 @@ const Analytics = () => {
           </Link>
         </div>
 
+        {/* Tarjetas de visitantes únicos (lo más relevante) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+          <Card className="border-primary/40">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <UserCheck className="h-4 w-4 text-primary" /> Visitantes únicos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{uniqueVisitors}</div>
+              {legacyVisits > 0 && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  + {legacyVisits} visitas previas sin ID
+                </p>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <UserPlus className="h-4 w-4 text-success" /> Nuevos hoy
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{newToday}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Repeat className="h-4 w-4" /> Recurrentes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{recurring}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tarjetas existentes */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardHeader className="pb-2">
@@ -179,26 +256,50 @@ const Analytics = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Fecha</TableHead>
+                      <TableHead>Tipo</TableHead>
                       <TableHead>Ruta</TableHead>
                       <TableHead>Ubicación</TableHead>
                       <TableHead>Origen</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {visits.slice(0, 50).map((v) => (
-                      <TableRow key={v.id}>
-                        <TableCell className="text-xs whitespace-nowrap">
-                          {new Date(v.created_at).toLocaleString()}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">{v.path}</TableCell>
-                        <TableCell className="text-xs">
-                          {[v.city, v.country].filter(Boolean).join(", ") || "—"}
-                        </TableCell>
-                        <TableCell className="text-xs truncate max-w-[200px]">
-                          {v.referrer || "Directo"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {visits.slice(0, 50).map((v) => {
+                      let typeBadge;
+                      if (!v.visitor_id) {
+                        typeBadge = (
+                          <Badge variant="outline" className="text-[10px]">
+                            histórico
+                          </Badge>
+                        );
+                      } else if (firstVisitIds.has(v.id)) {
+                        typeBadge = (
+                          <Badge className="bg-success text-success-foreground text-[10px]">
+                            Nuevo
+                          </Badge>
+                        );
+                      } else {
+                        typeBadge = (
+                          <Badge variant="secondary" className="text-[10px]">
+                            Recurrente
+                          </Badge>
+                        );
+                      }
+                      return (
+                        <TableRow key={v.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {new Date(v.created_at).toLocaleString()}
+                          </TableCell>
+                          <TableCell>{typeBadge}</TableCell>
+                          <TableCell className="font-mono text-xs">{v.path}</TableCell>
+                          <TableCell className="text-xs">
+                            {[v.city, v.country].filter(Boolean).join(", ") || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs truncate max-w-[200px]">
+                            {v.referrer || "Directo"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
