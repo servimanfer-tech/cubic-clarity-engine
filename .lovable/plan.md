@@ -1,61 +1,55 @@
+## 🎯 Objetivo
 
+Agregar al panel `/analytics` una métrica clara de **visitantes únicos** (personas distintas, no visitas totales) para responder bien a *"¿cuántas personas nuevas vieron la herramienta?"*.
 
-## Plan: integrar el `fmcubic_clean_1.zip` corregido por Claude
+---
 
-No puedo abrir el zip en modo plan (read-only no permite `unzip`). Necesito modo default para extraer e inspeccionar. Una vez aprobado, ejecuto los pasos en este orden.
+## 🧩 Cómo funcionará
 
-### Paso 1 — Extracción e inventario (sin tocar el repo)
+### 1. Generar un ID anónimo persistente por navegador
+- En `usePageTracking.ts`, al cargar por primera vez, generamos un **UUID** y lo guardamos en `localStorage` bajo la clave `cce_visitor_id`.
+- En visitas siguientes, reutilizamos ese mismo ID → así sabemos que es la **misma persona**.
+- Es **100% anónimo**: no guarda nombre, email, ni nada identificable. Solo un UUID aleatorio.
 
-1. Copiar `user-uploads://fmcubic_clean_1.zip` a `/tmp/fmcubic_clean_1.zip`.
-2. Descomprimir en `/tmp/fmcubic_clean/` y listar estructura completa.
-3. Mostrarte:
-   - Árbol de archivos
-   - Contenido de `pyproject.toml` / `setup.py` / `README.md` si existen
-   - Lista de módulos Python y de tests
-   - Diff conceptual vs. la versión anterior que habíamos discutido (qué corrigió Claude)
+### 2. Guardar el `visitor_id` en cada visita
+- Migración a la tabla `page_visits`: agregar columna `visitor_id text` (nullable, para no romper visitas históricas).
+- `usePageTracking` envía el `visitor_id` junto con cada `insert`.
 
-**No modifico nada del proyecto en este paso.** Solo reporto.
+### 3. Nuevas métricas en el panel `/analytics`
 
-### Paso 2 — Validación funcional de la librería
+Agregamos **3 tarjetas nuevas** arriba (reemplazando o complementando las actuales):
 
-4. Crear venv en `/tmp/fmcubic_venv`, instalar la librería desde el zip extraído.
-5. Correr la suite de tests incluida (`pytest`).
-6. Reportar:
-   - Cuántos tests pasan / fallan
-   - Cobertura de las ramas B1–B7 (paper-faithful vs fallback)
-   - Qué casos del paper Patel–Teja (Z, ρ, V) reproduce
-   - Errores numéricos vs los del solver TS actual en `src/lib/cubicSolvers.ts`
+| Métrica | Qué muestra |
+|---|---|
+| 👤 **Visitantes únicos** | Cantidad de `visitor_id` distintos (total histórico) |
+| ✨ **Nuevos hoy** | Visitantes cuya **primera visita** fue hoy |
+| 🔁 **Recurrentes** | Visitantes con más de 1 visita registrada |
 
-### Paso 3 — Decisión de ubicación en el repo
+Las métricas existentes (Visitas totales, Últimas 24h, Países, Rutas) se mantienen.
 
-Te pregunto antes de copiar. Opciones:
+### 4. Bonus: indicador visual en la tabla
+En la tabla "Visitas recientes", agregamos un pequeño badge **"Nuevo"** (verde) o **"Recurrente"** (gris) al lado de cada fila, según si es la primera vez de ese `visitor_id` o no.
 
-- **A)** `python/fmcubic/` dentro de este repo (monorepo: web app + librería Python conviven)
-- **B)** Carpeta `fmcubic/` en la raíz
-- **C)** No copiar al repo, dejar el zip como artefacto descargable desde la UI
+---
 
-Default propuesto: **A** (versionado junto al resto, mantenible).
+## 📂 Cambios técnicos
 
-### Paso 4 — Integración mínima (solo si aprobás A o B)
+| Archivo | Cambio |
+|---|---|
+| **Migración SQL** (nueva) | `ALTER TABLE page_visits ADD COLUMN visitor_id text;` + índice para queries rápidas |
+| `src/hooks/usePageTracking.ts` | Generar/leer UUID de `localStorage`, enviarlo en el insert |
+| `src/pages/Analytics.tsx` | Calcular las 3 métricas nuevas, agregar tarjetas, agregar badges en tabla |
 
-7. Copiar el contenido extraído a la ruta elegida.
-8. Agregar `python/README.md` con: instalación, ejemplo de uso, mapeo ramas B1–B7, limitaciones honestas, comando de tests.
-9. **No tocar** el código TS de la web app, ni los solvers, ni los tests Vitest. La web app sigue intacta.
-10. Verificar que `npm run build` y `npx vitest run` siguen verdes (la carpeta Python no debe romper el build de Vite).
+---
 
-### Paso 5 — Reporte final
+## ⚠️ Notas honestas
 
-Resumen entregable:
-- Estructura final de `python/fmcubic/`
-- Resultado de `pytest` (X/Y pasan)
-- Diferencias confirmadas vs versión anterior (qué corrigió Claude exactamente)
-- Cómo correr la librería localmente
-- Limitaciones que siguen vigentes
+- **Visitas históricas** (las 18 actuales) tendrán `visitor_id = null` → aparecerán agrupadas como "desconocido" en métricas únicas. A partir de ahora todo se trackea bien.
+- Si alguien **borra cookies/localStorage** o usa **modo incógnito**, contará como visitante nuevo. Es la limitación estándar de cualquier analytics sin login.
+- Si alguien entra desde **2 dispositivos distintos** (móvil + laptop), contará como 2 visitantes. También estándar.
 
-### Lo que NO voy a hacer (salvo que lo pidas explícito)
+Para tu caso de uso (saber cuánta gente real vio la herramienta tras compartirla con Olavarrieta, Sigalotti, etc.), esta precisión es más que suficiente. ✅
 
-- No reemplazo el solver TS por un puente a Python.
-- No agrego CI/CD, publishing a PyPI, ni Docker.
-- No reescribo código del zip; solo lo integro tal cual lo entregó Claude.
-- No modifico el preset Ill-conditioned ni la UI actual.
+---
 
+¿Le damos? Una vez aprobado el plan, lo implemento de una.
