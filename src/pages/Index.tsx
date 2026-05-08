@@ -123,29 +123,89 @@ const Index = () => {
     return v.toExponential(3);
   };
 
-  const renderRoots = (r: SolveResult) => (
-    <ul className="space-y-1 font-mono text-sm">
-      {r.roots.map((rt, i) => {
-        const res = evalResidual(rt);
-        const tiny = Number.isFinite(res) && res < 1e-6;
-        return (
-          <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className="text-muted-foreground">x{i + 1} =</span>
-            <span className="text-foreground">{fmtC(rt)}</span>
-            <Badge variant="outline" className="text-[10px] py-0 h-4">
-              {isReal(rt) ? "real" : "complex"}
-            </Badge>
-            <span
-              className={`text-[11px] ${tiny ? "text-success" : "text-muted-foreground"}`}
-              title="Residual |f(xᵢ)| evaluated by Horner's scheme"
-            >
-              f(x{i + 1}) = {fmtResidual(res)}
+  // Vieta's formulas: for Ax³+Bx²+Cx+D=0, sum of roots = -B/A, product = -D/A.
+  const computeVieta = (roots: { re: number; im: number }[]) => {
+    let sumRe = 0, sumIm = 0;
+    let prRe = 1, prIm = 0;
+    for (const rt of roots) {
+      sumRe += rt.re; sumIm += rt.im;
+      const nr = prRe * rt.re - prIm * rt.im;
+      const ni = prRe * rt.im + prIm * rt.re;
+      prRe = nr; prIm = ni;
+    }
+    const expectedSum = -B / A;
+    const expectedProd = -D / A;
+    const sumErr = Math.hypot(sumRe - expectedSum, sumIm);
+    const prodErr = Math.hypot(prRe - expectedProd, prIm);
+    const sumRel = sumErr / Math.max(Math.abs(expectedSum), 1e-300);
+    const prodRel = prodErr / Math.max(Math.abs(expectedProd), 1e-300);
+    return { sumRe, sumIm, prRe, prIm, expectedSum, expectedProd, sumRel, prodRel };
+  };
+
+  const fmtSigned = (re: number, im: number): string => {
+    if (Math.abs(im) < 1e-12) return re.toFixed(6);
+    return `${re.toFixed(6)} ${im >= 0 ? "+" : "-"} ${Math.abs(im).toFixed(6)}i`;
+  };
+
+  const renderRoots = (r: SolveResult) => {
+    const v = computeVieta(r.roots);
+    const sumOk = v.sumRel < 1e-8; // 1e-6 % == 1e-8
+    const prodOk = v.prodRel < 1e-8;
+    return (
+      <div className="space-y-2">
+        <ul className="space-y-1 font-mono text-sm">
+          {r.roots.map((rt, i) => {
+            const res = evalResidual(rt);
+            const tiny = Number.isFinite(res) && res < 1e-6;
+            return (
+              <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span className="text-muted-foreground">x{i + 1} =</span>
+                <span className="text-foreground">{fmtC(rt)}</span>
+                <Badge variant="outline" className="text-[10px] py-0 h-4">
+                  {isReal(rt) ? "real" : "complex"}
+                </Badge>
+                <span
+                  className={`text-[11px] ${tiny ? "text-success" : "text-muted-foreground"}`}
+                  title="Residual |f(xᵢ)| evaluated by Horner's scheme"
+                >
+                  f(x{i + 1}) = {fmtResidual(res)}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        <div
+          className="rounded-md border border-border bg-muted/30 p-2 font-mono text-[11px] space-y-1"
+          title="Verificación por relaciones de Vieta: suma = -B/A, producto = -D/A"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-muted-foreground">Suma</span>
+            <span className={sumOk ? "text-success" : "text-warning"}>
+              {sumOk ? "✅" : "⚠️"} {(v.sumRel * 100).toExponential(2)}%
             </span>
-          </li>
-        );
-      })}
-    </ul>
-  );
+          </div>
+          <div className="text-muted-foreground">
+            Σxᵢ = <span className="text-foreground">{fmtSigned(v.sumRe, v.sumIm)}</span>
+          </div>
+          <div className="text-muted-foreground">
+            −B/A = <span className="text-foreground">{v.expectedSum.toFixed(6)}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/60">
+            <span className="text-muted-foreground">Producto</span>
+            <span className={prodOk ? "text-success" : "text-warning"}>
+              {prodOk ? "✅" : "⚠️"} {(v.prodRel * 100).toExponential(2)}%
+            </span>
+          </div>
+          <div className="text-muted-foreground">
+            Πxᵢ = <span className="text-foreground">{fmtSigned(v.prRe, v.prIm)}</span>
+          </div>
+          <div className="text-muted-foreground">
+            −D/A = <span className="text-foreground">{v.expectedProd.toFixed(6)}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
