@@ -153,8 +153,8 @@ const Index = () => {
 
   const renderRoots = (r: SolveResult) => {
     const v = computeVieta(r.roots);
-    const sumOk = v.sumRel < 1e-8; // 1e-6 % == 1e-8
-    const prodOk = v.prodRel < 1e-8;
+    const sumOk = v.sumAbsMode ? v.sumErr < 1e-10 : v.sumRel < 1e-8; // 1e-6 % == 1e-8
+    const prodOk = v.prodAbsMode ? v.prodErr < 1e-10 : v.prodRel < 1e-8;
     return (
       <div className="space-y-2">
         <ul className="space-y-1 font-mono text-sm">
