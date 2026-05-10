@@ -185,7 +185,8 @@ const Index = () => {
           <div className="flex items-center justify-between gap-2">
             <span className="text-muted-foreground">Suma</span>
             <span className={sumOk ? "text-success" : "text-warning"}>
-              {sumOk ? "✅" : "⚠️"} {(v.sumRel * 100).toExponential(2)}%
+              {sumOk ? "✅" : "⚠️"}{" "}
+              {v.sumAbsMode ? `|Δ|=${v.sumErr.toExponential(2)}` : `${(v.sumRel * 100).toExponential(2)}%`}
             </span>
           </div>
           <div className="text-muted-foreground">
