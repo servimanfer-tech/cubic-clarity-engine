@@ -198,7 +198,8 @@ const Index = () => {
           <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/60">
             <span className="text-muted-foreground">Producto</span>
             <span className={prodOk ? "text-success" : "text-warning"}>
-              {prodOk ? "✅" : "⚠️"} {(v.prodRel * 100).toExponential(2)}%
+              {prodOk ? "✅" : "⚠️"}{" "}
+              {v.prodAbsMode ? `|Δ|=${v.prodErr.toExponential(2)}` : `${(v.prodRel * 100).toExponential(2)}%`}
             </span>
           </div>
           <div className="text-muted-foreground">
