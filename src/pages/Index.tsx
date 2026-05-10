@@ -137,9 +137,13 @@ const Index = () => {
     const expectedProd = -D / A;
     const sumErr = Math.hypot(sumRe - expectedSum, sumIm);
     const prodErr = Math.hypot(prRe - expectedProd, prIm);
-    const sumRel = sumErr / Math.max(Math.abs(expectedSum), 1e-300);
-    const prodRel = prodErr / Math.max(Math.abs(expectedProd), 1e-300);
-    return { sumRe, sumIm, prRe, prIm, expectedSum, expectedProd, sumRel, prodRel };
+    // Si el valor esperado es exactamente 0, el error relativo no tiene sentido
+    // (dividiría por ~0 amplificando ruido de punto flotante). Usamos error absoluto.
+    const sumAbsMode = expectedSum === 0;
+    const prodAbsMode = expectedProd === 0;
+    const sumRel = sumAbsMode ? 0 : sumErr / Math.abs(expectedSum);
+    const prodRel = prodAbsMode ? 0 : prodErr / Math.abs(expectedProd);
+    return { sumRe, sumIm, prRe, prIm, expectedSum, expectedProd, sumErr, prodErr, sumRel, prodRel, sumAbsMode, prodAbsMode };
   };
 
   const fmtSigned = (re: number, im: number): string => {
