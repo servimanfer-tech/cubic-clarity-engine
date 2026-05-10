@@ -137,9 +137,13 @@ const Index = () => {
     const expectedProd = -D / A;
     const sumErr = Math.hypot(sumRe - expectedSum, sumIm);
     const prodErr = Math.hypot(prRe - expectedProd, prIm);
-    const sumRel = sumErr / Math.max(Math.abs(expectedSum), 1e-300);
-    const prodRel = prodErr / Math.max(Math.abs(expectedProd), 1e-300);
-    return { sumRe, sumIm, prRe, prIm, expectedSum, expectedProd, sumRel, prodRel };
+    // Si el valor esperado es exactamente 0, el error relativo no tiene sentido
+    // (dividiría por ~0 amplificando ruido de punto flotante). Usamos error absoluto.
+    const sumAbsMode = expectedSum === 0;
+    const prodAbsMode = expectedProd === 0;
+    const sumRel = sumAbsMode ? 0 : sumErr / Math.abs(expectedSum);
+    const prodRel = prodAbsMode ? 0 : prodErr / Math.abs(expectedProd);
+    return { sumRe, sumIm, prRe, prIm, expectedSum, expectedProd, sumErr, prodErr, sumRel, prodRel, sumAbsMode, prodAbsMode };
   };
 
   const fmtSigned = (re: number, im: number): string => {
@@ -149,8 +153,8 @@ const Index = () => {
 
   const renderRoots = (r: SolveResult) => {
     const v = computeVieta(r.roots);
-    const sumOk = v.sumRel < 1e-8; // 1e-6 % == 1e-8
-    const prodOk = v.prodRel < 1e-8;
+    const sumOk = v.sumAbsMode ? v.sumErr < 1e-10 : v.sumRel < 1e-8; // 1e-6 % == 1e-8
+    const prodOk = v.prodAbsMode ? v.prodErr < 1e-10 : v.prodRel < 1e-8;
     return (
       <div className="space-y-2">
         <ul className="space-y-1 font-mono text-sm">
@@ -181,7 +185,8 @@ const Index = () => {
           <div className="flex items-center justify-between gap-2">
             <span className="text-muted-foreground">Suma</span>
             <span className={sumOk ? "text-success" : "text-warning"}>
-              {sumOk ? "✅" : "⚠️"} {(v.sumRel * 100).toExponential(2)}%
+              {sumOk ? "✅" : "⚠️"}{" "}
+              {v.sumAbsMode ? `|Δ|=${v.sumErr.toExponential(2)}` : `${(v.sumRel * 100).toExponential(2)}%`}
             </span>
           </div>
           <div className="text-muted-foreground">
@@ -193,7 +198,8 @@ const Index = () => {
           <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/60">
             <span className="text-muted-foreground">Producto</span>
             <span className={prodOk ? "text-success" : "text-warning"}>
-              {prodOk ? "✅" : "⚠️"} {(v.prodRel * 100).toExponential(2)}%
+              {prodOk ? "✅" : "⚠️"}{" "}
+              {v.prodAbsMode ? `|Δ|=${v.prodErr.toExponential(2)}` : `${(v.prodRel * 100).toExponential(2)}%`}
             </span>
           </div>
           <div className="text-muted-foreground">
